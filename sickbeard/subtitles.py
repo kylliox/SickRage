@@ -28,7 +28,7 @@ from sickbeard import history
 import subliminal
 import babelfish
 
-subliminal.cache_region.configure('dogpile.cache.memory')
+subliminal.region.configure('dogpile.cache.memory')
 
 provider_urls = {'addic7ed': 'http://www.addic7ed.com',
                  'opensubtitles': 'http://www.opensubtitles.org',
@@ -44,7 +44,7 @@ def sortedServiceList():
 
     curIndex = 0
     for curService in sickbeard.SUBTITLES_SERVICES_LIST:
-        if curService in subliminal.provider_manager.available_providers:
+        if curService in subliminal.provider_manager.names():
             newList.append({'name': curService,
                             'url': provider_urls[curService] if curService in provider_urls else lmgtfy % curService,
                             'image': curService + '.png',
@@ -52,7 +52,7 @@ def sortedServiceList():
                            })
         curIndex += 1
 
-    for curService in subliminal.provider_manager.available_providers:
+    for curService in subliminal.provider_manager.names():
         if curService not in [x['name'] for x in newList]:
             newList.append({'name': curService,
                             'url': provider_urls[curService] if curService in provider_urls else lmgtfy % curService,
@@ -89,9 +89,12 @@ def wantedLanguages(sqlLike = False):
 def subtitlesLanguages(video_path):
     """Return a list detected subtitles for the given video file"""
     resultList = []
-    languages = subliminal.video.scan_subtitle_languages(video_path)
+    #languages = subliminal.video.scan_subtitle_languages(video_path)
 
-    for language in languages:
+    video = subliminal.scan_video(video_path)
+
+
+    for language in set([babelfish.Language.fromopensubtitles(x) for x in wantedLanguages()]) - video.subtitle_languages:
         if hasattr(language, 'opensubtitles') and language.opensubtitles:
             resultList.append(language.opensubtitles)
         elif hasattr(language, 'alpha3') and language.alpha3:
